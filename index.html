@@ -214,6 +214,19 @@
     padding:8px 12px;border-radius:10px;font-size:.82rem;font-weight:600;cursor:pointer;transition:.15s}
   .ghostbtn:hover{border-color:var(--accent);color:var(--accent)}
 
+  /* second session */
+  .add-second{padding:6px 22px 22px;text-align:center}
+  .add-second .addbtn{width:100%;max-width:340px}
+  .add-second-hint{margin:10px 0 0;font-size:.8rem;color:var(--ink-3)}
+  .second-sesh{margin:0 14px 14px;border:1px dashed var(--line);border-radius:12px;background:var(--surface-2);overflow:hidden}
+  .second-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 16px 0}
+  .second-label{font-family:var(--font-disp);text-transform:uppercase;letter-spacing:.1em;font-weight:800;
+    font-size:.72rem;color:var(--cond)}
+  .second-sesh .session-top{border-bottom:1px solid var(--line-2)}
+  .second-sesh .session-body{padding-bottom:8px}
+  .chip-2nd{margin-top:5px;font-size:.58rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em;
+    color:var(--cond)}
+
   /* ---------- Aside: timer + stats ---------- */
   aside{display:flex;flex-direction:column;gap:20px;position:sticky;top:92px}
   @media (max-width:860px){ aside{position:static} }
@@ -367,17 +380,12 @@
         <div class="eyebrow">Your week</div>
         <h2 id="weekLabel">This Week</h2>
       </div>
-      <div class="phase-toggle" id="phaseToggle" title="Ease Back = gentle rebuild. Full = the complete program.">
-        <button data-p="ease" class="active">Ease back</button>
-        <button data-p="full">Full</button>
-      </div>
       <div class="weeknav">
         <button class="arrow" id="prevWk" aria-label="Previous week">‹</button>
         <button id="thisWk">This week</button>
         <button class="arrow" id="nextWk" aria-label="Next week">›</button>
       </div>
     </div>
-    <div class="phase-note" id="phaseNote"></div>
     <div class="daystrip" id="daystrip"></div>
 
     <div class="grid">
@@ -548,73 +556,9 @@
         {n:"Rest up, enjoy the day",d:"log your weight if you like"}]}
     ]}
   ];
-  // ---- Ease Back phase: gentle rebuild after injury / surgery. Same weekly shape, much lighter. ----
-  var EASE=[
-    {tag:"strength",code:"Reset",title:"Full Body (light)",blocks:[
-      {name:"Warm-up",items:[
-        {n:"Easy bike or walk",d:"5 min"},
-        {n:"Mobility flow",d:"hips, shoulders, spine"}]},
-      {name:"Light strength — controlled, breathe out on effort",items:[
-        {n:"Goblet Squat (light)",d:"2 × 10"},
-        {n:"DB Bench Press (light)",d:"2 × 10"},
-        {n:"Seated Cable Row",d:"2 × 12"},
-        {n:"DB Overhead Press (light)",d:"2 × 10"}]},
-      {name:"Finish",items:[{n:"Stretch",d:"5 min"}]}
-    ]},
-    {tag:"boxing",code:"Pads",title:"Pad Work (easy)",coach:"Coach session — keep it technique-only and light while you rebuild. No heavy body shots.",blocks:[
-      {name:"Warm-up",items:[
-        {n:"Skip rope, relaxed",d:"2 × 2 min"},
-        {n:"Shadow boxing",d:"2 rounds"}]},
-      {name:"With coach",rounds:0,items:[
-        {n:"Pads — technique & footwork",d:"light output"},
-        {n:"No sparring yet",d:"just sharpen the tools"}]}
-    ]},
-    {tag:"recovery",code:"Move",title:"Walk & Mobility",blocks:[
-      {name:"Easy movement",items:[
-        {n:"Brisk walk",d:"20–30 min"},
-        {n:"Full-body stretch",d:"15 min"},
-        {n:"Foam roll",d:"legs, back, shoulders"}]}
-    ]},
-    {tag:"boxing",code:"Ring",title:"Boxing (light)",coach:"Coach session — technique & bag only. Leave sparring until you're cleared and feel ready.",blocks:[
-      {name:"Warm-up",items:[
-        {n:"Skip rope",d:"2 rounds"},
-        {n:"Shadow boxing",d:"3 rounds"}]},
-      {name:"Boxing — easy",rounds:0,items:[
-        {n:"Technique & light bag",d:"4–5 relaxed rounds"},
-        {n:"No sparring",d:"build the base back first"}]},
-      {name:"Cool-down",items:[{n:"Stretch & breathe",d:"5 min"}]}
-    ]},
-    {tag:"strength",code:"Base",title:"Full Body (light)",blocks:[
-      {name:"Warm-up",items:[
-        {n:"Easy bike",d:"5 min"},
-        {n:"Mobility flow",d:"5 min"}]},
-      {name:"Light strength — no heavy bracing",items:[
-        {n:"Leg Press (light)",d:"2 × 12"},
-        {n:"Lat Pulldown",d:"2 × 12"},
-        {n:"Incline DB Press (light)",d:"2 × 10"},
-        {n:"Face Pulls",d:"2 × 15"}]},
-      {name:"Gentle core",items:[
-        {n:"Dead bug",d:"2 × 10"},
-        {n:"Bird dog",d:"2 × 8 / side"}]}
-    ]},
-    {tag:"conditioning",code:"Engine",title:"Easy Cardio",blocks:[
-      {name:"Cardio — keep it conversational",items:[
-        {n:"Easy run / walk or bike",d:"20–30 min"}]},
-      {name:"Light bag",rounds:4,items:[
-        {n:"Bag, own pace",d:"4 × 2 min"}]},
-      {name:"Cool-down",items:[{n:"Mobility flow",d:"10 min"}]}
-    ]},
-    {tag:"recovery",code:"Rest",title:"Rest & Recover",blocks:[
-      {name:"Recovery",items:[
-        {n:"Easy walk",d:"20–30 min"},
-        {n:"Stretch / mobility",d:"15 min"},
-        {n:"Rest up, family time",d:"log your weight if you like"}]}
-    ]}
-  ];
-
   var DOW=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
   var LIFTS=["Bench Press","Overhead Press","Back Squat","Romanian Deadlift","Lat Pulldown","Barbell Row"];
-  function P(){return state.phase==="full"?TPL:EASE;}
+  function P(){return TPL;}
 
   // ---- Alternative sessions you can swap into ANY day (e.g. boxing class cancelled). ----
   var EXTRAS=[
@@ -654,9 +598,15 @@
       {name:"Easy aerobic",items:[
         {n:"Run, bike or row — conversational",d:"25–35 min"}]},
       {name:"Cool-down",items:[{n:"Mobility flow",d:"5 min"}]}
+    ]},
+    {tag:"conditioning",code:"Run",title:"Run",blocks:[
+      {name:"Run",items:[
+        {n:"Run",d:"note distance / time below"},
+        {n:"Cool-down stretch",d:"5 min"}]}
     ]}
   ];
   function A(){return P().concat(EXTRAS);}   // full pickable list: 7 week days + extras
+  function extraIndexByCode(code){for(var j=0;j<EXTRAS.length;j++)if(EXTRAS[j].code===code)return 7+j;return 7;}
 
   // ---- Optional finisher, tacked onto strength & boxing days. Pick one or two if you've got time. ----
   var FINISHER={name:"Optional finisher", optional:true, pill:"If you’ve got time",
@@ -695,13 +645,15 @@
   var state=load();
   function load(){
     try{var s=JSON.parse(localStorage.getItem(LS));if(s&&typeof s==="object")return migrate(s);}catch(e){}
-    return {progress:{},notes:{},overrides:{},theme:null,unit:"kg",phase:"ease",
+    return {progress:{},notes:{},overrides:{},theme:null,unit:"kg",
+            second:{},progress2:{},notes2:{},
             bodyweight:[],lifts:{},timer:{rounds:6,work:180,rest:60}};
   }
   function migrate(s){
     s.progress=s.progress||{};s.notes=s.notes||{};s.overrides=s.overrides||{};
+    s.second=s.second||{};s.progress2=s.progress2||{};s.notes2=s.notes2||{};
     s.bodyweight=s.bodyweight||[];s.lifts=s.lifts||{};s.unit=s.unit||"kg";
-    s.phase=s.phase||"ease"; s.timer=s.timer||{rounds:6,work:180,rest:60};
+    s.timer=s.timer||{rounds:6,work:180,rest:60};
     // migrate single-weight lift entries {w} -> per-set {sets:[w]}
     Object.keys(s.lifts).forEach(function(n){
       s.lifts[n]=(s.lifts[n]||[]).map(function(e){
@@ -733,7 +685,7 @@
 
   // ---- Progress helpers ----
   function totalItems(t){var n=0;t.blocks.forEach(function(b){if(!/warm/i.test(b.name))n+=b.items.length;});return n;}
-  function doneCount(dISO){var p=state.progress[dISO];if(!p)return 0;var c=0;for(var k in p)if(p[k]&&k.indexOf("opt-")!==0)c++;return c;}
+  function doneCount(dISO,store){store=store||"progress";var m=state[store];var p=m&&m[dISO];if(!p)return 0;var c=0;for(var k in p)if(p[k]&&k.indexOf("opt-")!==0)c++;return c;}
   function isComplete(dISO,t){return totalItems(t)>0 && doneCount(dISO)>=totalItems(t);}
   function latestBW(){return state.bodyweight.length? state.bodyweight[state.bodyweight.length-1] : null;}
   // A line is "weighted" (gets a weight box) if its detail has a sets×reps pattern that isn't a time (e.g. "4 × 6", not "6 × 3 min").
@@ -776,7 +728,8 @@
         '<span class="ring '+(done?"done":"")+'" style="'+ringStyle+'"><span class="core"></span></span></div>'+
         '<div><div class="dnum tnum">'+date.getDate()+'</div>'+
         '<div class="code" style="color:'+tag.c+'">'+t.code+'</div>'+
-        '<div class="tag">'+tag.label+'</div></div>';
+        '<div class="tag">'+tag.label+'</div>'+
+        (state.second[dISO]!=null?'<div class="chip-2nd">+ 2nd</div>':'')+'</div>';
       el.addEventListener("click",function(){selISO=dISO;renderWeek();renderSession();});
       stripEl.appendChild(el);
     })(i);}
@@ -785,20 +738,12 @@
 
   // ================= SESSION PANEL =================
   var panel=document.getElementById("sessionPanel");
-  function renderSession(){
-    var date=new Date(selISO+"T00:00:00");
-    var dow=(date.getDay()+6)%7, ti=tplIndexFor(selISO,dow), t=A()[ti], tag=TAGS[t.tag];
-    var tot=totalItems(t), dn=doneCount(selISO), pct=tot?Math.round(dn/tot*100):0;
-    var wk=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"][dow];
-    var dayLabel=(selISO===todayISO?"Today · ":"")+wk+" "+fmtDate(date);
-
-    var h='<div class="session-top"><span class="stripe" style="background:'+tag.c+'"></span>'+
-      '<div class="eyebrow"><span class="focus-pill" style="color:'+tag.c+';background:'+tag.bg+'">'+tag.label+'</span><span>'+dayLabel+'</span></div>'+
-      '<h3>'+t.code+' — '+t.title+'</h3>'+
-      '<div class="prog"><div class="bar"><i style="width:'+pct+'%;background:'+tag.c+'"></i></div><b class="tnum">'+dn+' / '+tot+'</b></div>'+
-      (t.coach?'<div class="coach-note">🥊 '+esc(t.coach)+'</div>':'')+'</div>';
-
-    h+='<div class="session-body">';
+  // Build the block list (warm-up picker + main blocks + finisher) HTML for a template, keyed to a progress store.
+  function sessionBlocks(t, store){
+    var tag=TAGS[t.tag];
+    var prog=state[store][selISO];
+    var s2attr = store==="progress2" ? ' data-store="2"' : '';
+    var h='<div class="session-body">';
     var blocks=[];
     if(WARMUPS[t.tag])blocks.push({name:"Warm-up", optional:true, pill:"Pick a couple",
       hint:"Choose whatever you fancy — warm-ups aren’t counted.", items:WARMUPS[t.tag]});
@@ -810,7 +755,7 @@
          (b.rounds?'<span class="rounds-pill" style="color:'+tag.c+';background:'+tag.bg+'">'+b.rounds+' × 3 min</span>':'')+'</div>'+
          (b.optional?'<p class="opt-hint">'+esc(b.hint||"Pick one or two — totally optional.")+'</p>':'')+'<ul class="items">';
       b.items.forEach(function(it,ii){
-        var key=(b.optional?"opt-":"")+bi+"-"+ii, done=state.progress[selISO]&&state.progress[selISO][key];
+        var key=(b.optional?"opt-":"")+bi+"-"+ii, done=prog&&prog[key];
         var setsHtml="";
         if(isWeighted(it.d) && !isBodyweight(it.n)){
           var nSets=parseSets(it.d), reps=parseReps(it.d);
@@ -828,31 +773,73 @@
           }
           setsHtml='<div class="sets"><span class="sets-lab">Weight per set ('+state.unit+') — faded = last time</span>'+boxes+'</div>';
         }
-        h+='<li class="item'+(done?" done":"")+'" data-key="'+key+'"><span class="check">✓</span>'+
+        h+='<li class="item'+(done?" done":"")+'" data-key="'+key+'"'+s2attr+'><span class="check">✓</span>'+
            '<div class="item-main"><span class="lbl">'+esc(it.n)+(it.d?' <span class="det">— '+esc(it.d)+'</span>':'')+'</span>'+setsHtml+'</div></li>';
       });
       h+='</ul></div>';
     });
     h+='</div>';
+    return h;
+  }
+  function sessionOptions(sel){
+    function opt(x,i){return '<option value="'+i+'"'+(i===sel?" selected":"")+'>'+x.code+' — '+x.title+'</option>';}
+    return '<optgroup label="This week&#39;s plan">'+P().map(function(x,i){return opt(x,i);}).join("")+'</optgroup>'+
+           '<optgroup label="Alternatives">'+EXTRAS.map(function(x,j){return opt(x,7+j);}).join("")+'</optgroup>';
+  }
+
+  function renderSession(){
+    var date=new Date(selISO+"T00:00:00");
+    var dow=(date.getDay()+6)%7, ti=tplIndexFor(selISO,dow), t=A()[ti], tag=TAGS[t.tag];
+    var tot=totalItems(t), dn=doneCount(selISO), pct=tot?Math.round(dn/tot*100):0;
+    var wk=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"][dow];
+    var dayLabel=(selISO===todayISO?"Today · ":"")+wk+" "+fmtDate(date);
+
+    var h='<div class="session-top"><span class="stripe" style="background:'+tag.c+'"></span>'+
+      '<div class="eyebrow"><span class="focus-pill" style="color:'+tag.c+';background:'+tag.bg+'">'+tag.label+'</span><span>'+dayLabel+'</span></div>'+
+      '<h3>'+t.code+' — '+t.title+'</h3>'+
+      '<div class="prog"><div class="bar"><i style="width:'+pct+'%;background:'+tag.c+'"></i></div><b class="tnum">'+dn+' / '+tot+'</b></div>'+
+      (t.coach?'<div class="coach-note">🥊 '+esc(t.coach)+'</div>':'')+'</div>';
+
+    h+=sessionBlocks(t,"progress");
 
     var note=(state.notes[selISO]||"");
     h+='<div class="note-wrap"><label class="eyebrow" style="display:block;margin-bottom:8px">Session notes</label>'+
        '<textarea class="note" id="noteBox" placeholder="Weights used, how it felt, tweaks for next time…">'+esc(note)+'</textarea></div>';
 
-    function opt(x,i){return '<option value="'+i+'"'+(i===ti?" selected":"")+'>'+x.code+' — '+x.title+'</option>';}
     h+='<div class="session-tools"><div class="swap"><span class="eyebrow" style="letter-spacing:.1em">Swap day</span>'+
-       '<select class="styled" id="swapSel">'+
-       '<optgroup label="This week&#39;s plan">'+P().map(function(x,i){return opt(x,i);}).join("")+'</optgroup>'+
-       '<optgroup label="Swap in an alternative">'+EXTRAS.map(function(x,j){return opt(x,7+j);}).join("")+'</optgroup>'+
-       '</select></div>'+
+       '<select class="styled" id="swapSel">'+sessionOptions(ti)+'</select></div>'+
        '<button class="ghostbtn" id="resetDay">Clear ticks</button></div>';
+
+    // ---- Optional 2nd session (e.g. a run after) ----
+    var s2i=state.second[selISO];
+    if(s2i!=null){
+      var t2=A()[s2i], tag2=TAGS[t2.tag];
+      var tot2=totalItems(t2), dn2=doneCount(selISO,"progress2"), pct2=tot2?Math.round(dn2/tot2*100):0;
+      h+='<div class="second-sesh"><div class="second-head"><span class="second-label">2nd session today</span>'+
+         '<button class="ghostbtn" id="removeSecond" type="button">Remove</button></div>';
+      h+='<div class="session-top"><span class="stripe" style="background:'+tag2.c+'"></span>'+
+         '<div class="eyebrow"><span class="focus-pill" style="color:'+tag2.c+';background:'+tag2.bg+'">'+tag2.label+'</span><span>Extra session</span></div>'+
+         '<h3>'+t2.code+' — '+t2.title+'</h3>'+
+         '<div class="prog"><div class="bar"><i style="width:'+pct2+'%;background:'+tag2.c+'"></i></div><b class="tnum">'+dn2+' / '+tot2+'</b></div></div>';
+      h+=sessionBlocks(t2,"progress2");
+      var note2=(state.notes2[selISO]||"");
+      h+='<div class="note-wrap"><label class="eyebrow" style="display:block;margin-bottom:8px">2nd session notes</label>'+
+         '<textarea class="note" id="note2Box" placeholder="e.g. 5 km run, 26 min…">'+esc(note2)+'</textarea></div>';
+      h+='<div class="session-tools"><div class="swap"><span class="eyebrow" style="letter-spacing:.1em">This was a</span>'+
+         '<select class="styled" id="swap2Sel">'+sessionOptions(s2i)+'</select></div></div>';
+      h+='</div>';
+    } else {
+      h+='<div class="add-second"><button class="addbtn" id="addSecond" type="button">＋ Add a 2nd session</button>'+
+         '<p class="add-second-hint">Did a run or extra session today? Log it separately here.</p></div>';
+    }
     panel.innerHTML=h;
 
     panel.querySelectorAll("li.item").forEach(function(li){
       li.addEventListener("click",function(){
         var key=li.getAttribute("data-key");
-        if(!state.progress[selISO])state.progress[selISO]={};
-        if(state.progress[selISO][key])delete state.progress[selISO][key]; else state.progress[selISO][key]=true;
+        var store=li.getAttribute("data-store")==="2"?"progress2":"progress";
+        if(!state[store][selISO])state[store][selISO]={};
+        if(state[store][selISO][key])delete state[store][selISO][key]; else state[store][selISO][key]=true;
         save(); renderSession(); renderWeek();
       });
     });
@@ -887,6 +874,22 @@
     document.getElementById("resetDay").addEventListener("click",function(){
       state.progress[selISO]={};save();renderSession();renderWeek();
     });
+    var addBtn=document.getElementById("addSecond");
+    if(addBtn) addBtn.addEventListener("click",function(){
+      state.second[selISO]=extraIndexByCode("Run"); save(); renderSession(); renderWeek();
+    });
+    var remBtn=document.getElementById("removeSecond");
+    if(remBtn) remBtn.addEventListener("click",function(){
+      delete state.second[selISO]; delete state.progress2[selISO]; delete state.notes2[selISO];
+      save(); renderSession(); renderWeek();
+    });
+    var swap2=document.getElementById("swap2Sel");
+    if(swap2) swap2.addEventListener("change",function(){
+      state.second[selISO]=parseInt(this.value,10); state.progress2[selISO]={};
+      save(); renderSession(); renderWeek();
+    });
+    var n2=document.getElementById("note2Box");
+    if(n2) n2.addEventListener("input",function(){state.notes2[selISO]=n2.value;save();});
   }
 
   // ================= TRAIN STATS =================
@@ -896,7 +899,7 @@
       var dISO=iso(addDays(viewMonday,i)), ti=tplIndexFor(dISO,i), t=A()[ti];
       if(t.tag!=="recovery")train++;
       if(t.tag!=="recovery"&&isComplete(dISO,t))sess++;
-      ex+=doneCount(dISO);
+      ex+=doneCount(dISO)+doneCount(dISO,"progress2");
     }
     document.getElementById("stSessions").textContent=sess+"/"+train;
     document.getElementById("stEx").textContent=ex;
@@ -1091,24 +1094,6 @@
   });
   (function initUnit(){document.querySelectorAll("#unitToggle button").forEach(function(x){x.classList.toggle("active",x.getAttribute("data-u")===state.unit);});})();
 
-  // ---- Phase toggle (Ease Back / Full) ----
-  var phaseNoteEl=document.getElementById("phaseNote");
-  function renderPhase(){
-    document.querySelectorAll("#phaseToggle button").forEach(function(x){x.classList.toggle("active",x.getAttribute("data-p")===state.phase);});
-    if(state.phase==="ease"){
-      phaseNoteEl.hidden=false;
-      phaseNoteEl.innerHTML='🌱 <span><b>Ease Back phase.</b> Gentle full-body sessions, technique-only boxing and easy cardio while you rebuild. Go at your own pace, avoid heavy straining, and check with your surgeon or GP before ramping up or sparring again. Switch to <b>Full</b> when you’re back to strength.</span>';
-    } else {
-      phaseNoteEl.hidden=false;
-      phaseNoteEl.innerHTML='🥊 <span><b>Full program.</b> The complete 6-day boxing &amp; strength week. Ease back in if you’ve had a layoff.</span>';
-    }
-  }
-  document.getElementById("phaseToggle").addEventListener("click",function(e){
-    var b=e.target.closest("button"); if(!b)return;
-    state.phase=b.getAttribute("data-p"); save();
-    renderPhase(); renderWeek(); renderSession();
-  });
-  renderPhase();
 
   // ================= WEEK NAV =================
   document.getElementById("prevWk").addEventListener("click",function(){viewMonday=addDays(viewMonday,-7);renderWeek();});
@@ -1191,7 +1176,7 @@
   function renderAll(){
     T=state.timer||{rounds:6,work:180,rest:60}; state.timer=T;
     applyTheme(); refreshToggles(); drawCfg(); resetTimer();
-    renderPhase(); renderWeek(); renderSession(); renderBW(); renderLifts(); renderStats();
+    renderWeek(); renderSession(); renderBW(); renderLifts(); renderStats();
   }
   async function getDownloads(){
     try{ if(window.claude && typeof claude.use==="function"){ return await claude.use("downloads"); } }catch(e){}
