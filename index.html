@@ -187,6 +187,14 @@
   .sw::placeholder{color:var(--ink-3);opacity:.6}
   .sw:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
   .sw.logged{border-color:var(--iron);color:var(--iron);font-weight:700}
+  .setbox[hidden]{display:none}
+  .repbox{margin-left:5px}
+  .sr{width:46px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);border-radius:8px;
+    padding:6px 4px;font-size:.85rem;font-family:var(--font-body);font-variant-numeric:tabular-nums;text-align:center}
+  .sr::-webkit-outer-spin-button,.sr::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  .sr::placeholder{color:var(--ink-3);opacity:.6}
+  .sr:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  .sr.logged{border-color:var(--iron);color:var(--iron);font-weight:700}
 
   .note-wrap{padding:6px 22px 20px}
   textarea.note{width:100%;min-height:70px;resize:vertical;border:1px solid var(--line);border-radius:10px;
@@ -685,6 +693,12 @@
   function parseSets(d){var m=/(\d+)\s*×/.exec(d||"");var n=m?parseInt(m[1],10):1;return Math.max(1,Math.min(n,6));}
   function setVals(e){return (e&&e.sets?e.sets:[]).filter(function(x){return x!=null&&!isNaN(x);});}
   function topSet(e){var v=setVals(e);return v.length?Math.max.apply(null,v):null;}
+  function entryFor(name,dISO){var l=state.lifts[name]||[];for(var i=0;i<l.length;i++)if(l[i].d===dISO)return l[i];return null;}
+  // Reps actually done on a set: a per-set override (e.rs) if there is one, else the entry's planned reps.
+  function repsFor(e,sIdx){var o=e&&e.rs?e.rs[sIdx]:null;return (o!=null&&!isNaN(o))?o:((e&&e.r)||0);}
+  function hasRepEdits(e){return !!(e&&e.rs&&e.rs.some(function(x){return x!=null;}));}
+  // Index of the last set with a weight in it — the "most recent" set logged for that lift.
+  function lastLoggedSet(e){var last=-1,v=(e&&e.sets)||[];for(var i=0;i<v.length;i++)if(v[i]!=null&&!isNaN(v[i]))last=i;return last;}
   function lastEntryBefore(name,beforeISO){
     var l=(state.lifts[name]||[]).filter(function(e){return e.d<beforeISO;});
     if(!l.length)return null;
@@ -727,6 +741,18 @@
 
   // ================= SESSION PANEL =================
   var panel=document.getElementById("sessionPanel");
+  function repLabel(i){return i<0?"Last set reps":"Set "+(i+1)+" reps";}
+  // Rep count for the most recently logged set, so a set that fell short of the plan (4 × 6, but the last one only made 4)
+  // can be corrected. Empty = did the planned reps.
+  function repBoxHtml(name,entry,planned){
+    var i=lastLoggedSet(entry);
+    var ov=(i>=0&&entry&&entry.rs&&entry.rs[i]!=null)?entry.rs[i]:"";
+    return '<span class="setbox repbox"'+(i<0?" hidden":"")+'>'+
+      '<span class="setn">'+repLabel(i)+'</span>'+
+      '<input class="sr'+(ov!==""?" logged":"")+'" type="number" step="1" min="1" inputmode="numeric"'+
+      ' data-name="'+esc(name)+'" data-set="'+i+'" value="'+ov+'" placeholder="'+(planned||"reps")+'"'+
+      ' aria-label="'+esc(name)+' '+repLabel(i).toLowerCase()+'"></span>';
+  }
   // Build the block list (warm-up picker + main blocks + finisher) HTML for a template, keyed to a progress store.
   function sessionBlocks(t, store){
     var tag=TAGS[t.tag];
@@ -748,7 +774,7 @@
         var setsHtml="";
         if(isWeighted(it.d) && !isBodyweight(it.n)){
           var nSets=parseSets(it.d), reps=parseReps(it.d);
-          var todayE=(state.lifts[it.n]||[]).filter(function(e){return e.d===selISO;})[0];
+          var todayE=entryFor(it.n,selISO);
           var prevE=lastEntryBefore(it.n,selISO);
           var boxes="";
           for(var sIdx=0;sIdx<nSets;sIdx++){
@@ -760,7 +786,8 @@
               ' data-name="'+esc(it.n)+'" data-set="'+sIdx+'" data-reps="'+reps+'" value="'+cur+'" placeholder="'+ph+'"'+
               ' aria-label="'+esc(it.n)+' set '+(sIdx+1)+' weight"></span>';
           }
-          setsHtml='<div class="sets"><span class="sets-lab">Weight per set ('+state.unit+') — faded = last time</span>'+boxes+'</div>';
+          setsHtml='<div class="sets"><span class="sets-lab">Weight per set ('+state.unit+') — faded = last time</span>'+
+            boxes+repBoxHtml(it.n,todayE,reps)+'</div>';
         }
         h+='<li class="item'+(done?" done":"")+'" data-key="'+key+'"'+s2attr+'><span class="check">✓</span>'+
            '<div class="item-main"><span class="lbl">'+esc(it.n)+(it.d?' <span class="det">— '+esc(it.d)+'</span>':'')+'</span>'+setsHtml+'</div></li>';
@@ -846,10 +873,41 @@
         entry.r=reps;
         if(raw===""){entry.sets[sIdx]=null;}
         else{var v=parseFloat(raw); entry.sets[sIdx]=(!isNaN(v)&&v>0)?toKg(v):null;}
+        if(entry.sets[sIdx]==null&&entry.rs)entry.rs[sIdx]=null;   // no weight, no rep override
+        if(entry.rs&&!hasRepEdits(entry))delete entry.rs;
         if(!setVals(entry).length){state.lifts[name]=list.filter(function(e){return e!==entry;});}
         if(state.lifts[name].length===0)delete state.lifts[name];
         else state.lifts[name].sort(function(a,b){return a.d<b.d?-1:1;});
         inp.classList.toggle("logged",raw!=="");
+        save();
+        syncRepBox(inp.closest("li.item"));
+      });
+    });
+    // Point the rep box at whichever set is now the most recently logged one.
+    function syncRepBox(li){
+      var box=li&&li.querySelector(".repbox"); if(!box)return;
+      var inp=box.querySelector(".sr"), name=inp.getAttribute("data-name");
+      var entry=entryFor(name,selISO), i=lastLoggedSet(entry);
+      var ov=(i>=0&&entry&&entry.rs&&entry.rs[i]!=null)?entry.rs[i]:"";
+      box.hidden=i<0;
+      box.querySelector(".setn").textContent=repLabel(i);
+      inp.setAttribute("data-set",i);
+      inp.setAttribute("aria-label",name+" "+repLabel(i).toLowerCase());
+      inp.value=ov;
+      inp.classList.toggle("logged",ov!=="");
+    }
+    panel.querySelectorAll(".sr").forEach(function(inp){
+      inp.addEventListener("click",function(e){e.stopPropagation();});
+      inp.addEventListener("change",function(){
+        var sIdx=parseInt(inp.getAttribute("data-set"),10);
+        var entry=entryFor(inp.getAttribute("data-name"),selISO);
+        if(!entry||isNaN(sIdx)||sIdx<0){inp.value="";return;}
+        var v=parseInt(inp.value.trim(),10), ok=!isNaN(v)&&v>0;
+        if(!entry.rs)entry.rs=[];
+        entry.rs[sIdx]=ok?v:null;
+        if(!hasRepEdits(entry))delete entry.rs;
+        inp.value=ok?v:"";
+        inp.classList.toggle("logged",ok);
         save();
       });
     });
@@ -983,7 +1041,9 @@
   function bestOf(list){
     if(!list||!list.length)return null;
     var bw=-1,br=0;
-    list.forEach(function(e){var t=topSet(e); if(t!=null&&t>bw){bw=t;br=e.r||0;}});
+    list.forEach(function(e){
+      (e.sets||[]).forEach(function(w,i){ if(w!=null&&!isNaN(w)&&w>bw){bw=w;br=repsFor(e,i);} });
+    });
     return bw<0?null:{w:bw,r:br};
   }
   function renderLifts(){
@@ -1008,8 +1068,10 @@
         if(last){
           h+='<div class="lift-hist">'+list.slice().reverse().slice(0,6).map(function(e){
              var d=new Date(e.d+"T00:00:00");
-             var setsTxt=setVals(e).map(function(w){return round1(fromKg(w));}).join(" · ");
-             return '<span>'+(setsTxt||"—")+' '+state.unit+(e.r?' ×'+e.r:'')+' · '+fmtDate(d)+'</span>';
+             var ov=hasRepEdits(e), parts=[];
+             (e.sets||[]).forEach(function(w,i){ if(w!=null&&!isNaN(w))parts.push(round1(fromKg(w))+(ov?"×"+repsFor(e,i):"")); });
+             var setsTxt=parts.join(" · ");
+             return '<span>'+(setsTxt||"—")+' '+state.unit+((!ov&&e.r)?' ×'+e.r:'')+' · '+fmtDate(d)+'</span>';
           }).join("")+'</div>';
         }
       }
