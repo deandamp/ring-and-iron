@@ -1,5 +1,5 @@
 /* Ring & Iron service worker — offline-first for the app shell. */
-var CACHE = "ring-and-iron-v1";
+var CACHE = "ring-and-iron-v2";
 var ASSETS = [
   ".",
   "index.html",
