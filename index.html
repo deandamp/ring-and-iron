@@ -181,12 +181,35 @@
   .sets-lab{flex-basis:100%;font-size:.6rem;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-3);font-weight:700}
   .setbox{display:inline-flex;flex-direction:column;align-items:center;gap:3px}
   .setn{font-size:.56rem;color:var(--ink-3);font-weight:800;letter-spacing:.05em;text-transform:uppercase}
-  .sw{width:52px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);border-radius:8px;
+  .sw,.sr,.dw,.dr{border:1px solid var(--line);background:var(--surface-2);color:var(--ink);border-radius:8px;
     padding:6px 4px;font-size:.85rem;font-family:var(--font-body);font-variant-numeric:tabular-nums;text-align:center}
-  .sw::-webkit-outer-spin-button,.sw::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
-  .sw::placeholder{color:var(--ink-3);opacity:.6}
-  .sw:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
-  .sw.logged{border-color:var(--iron);color:var(--iron);font-weight:700}
+  .sw,.dw{width:52px}
+  .sr,.dr{width:46px}
+  .sw::-webkit-outer-spin-button,.sw::-webkit-inner-spin-button,
+  .sr::-webkit-outer-spin-button,.sr::-webkit-inner-spin-button,
+  .dw::-webkit-outer-spin-button,.dw::-webkit-inner-spin-button,
+  .dr::-webkit-outer-spin-button,.dr::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  .sw::placeholder,.sr::placeholder,.dw::placeholder,.dr::placeholder{color:var(--ink-3);opacity:.6}
+  .sw:focus-visible,.sr:focus-visible,.dw:focus-visible,.dr:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  .sw.logged,.sr.logged{border-color:var(--iron);color:var(--iron);font-weight:700}
+  .dw.logged,.dr.logged{border-color:var(--cond);color:var(--cond);font-weight:700}
+  .setbox[hidden]{display:none}
+  .repbox{margin-left:5px}
+
+  /* Drop set on the final set (strength days) */
+  .dropbtn{appearance:none;border:1px dashed var(--line);background:transparent;color:var(--ink-3);cursor:pointer;
+    border-radius:8px;padding:5px 10px;align-self:flex-start;font-family:var(--font-body);
+    font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em}
+  .dropbtn[hidden]{display:none}
+  .dropbtn:hover{border-color:var(--cond);color:var(--cond);background:var(--cond-bg)}
+  .drops{display:flex;flex-wrap:wrap;gap:7px;align-items:flex-end}
+  .drops-lab{flex-basis:100%;display:flex;align-items:center;gap:6px;font-size:.6rem;text-transform:uppercase;
+    letter-spacing:.08em;color:var(--cond);font-weight:700}
+  .drop-off{appearance:none;border:none;background:transparent;color:var(--ink-3);cursor:pointer;
+    font-size:.7rem;line-height:1;padding:2px 5px;border-radius:6px}
+  .drop-off:hover{background:var(--surface-2);color:var(--accent)}
+  .droppair{display:inline-flex;align-items:center;gap:3px}
+  .droppair .by{font-size:.7rem;color:var(--ink-3);font-weight:700}
 
   .note-wrap{padding:6px 22px 20px}
   textarea.note{width:100%;min-height:70px;resize:vertical;border:1px solid var(--line);border-radius:10px;
@@ -685,6 +708,24 @@
   function parseSets(d){var m=/(\d+)\s*×/.exec(d||"");var n=m?parseInt(m[1],10):1;return Math.max(1,Math.min(n,6));}
   function setVals(e){return (e&&e.sets?e.sets:[]).filter(function(x){return x!=null&&!isNaN(x);});}
   function topSet(e){var v=setVals(e);return v.length?Math.max.apply(null,v):null;}
+  function entryFor(name,dISO){var l=state.lifts[name]||[];for(var i=0;i<l.length;i++)if(l[i].d===dISO)return l[i];return null;}
+  // Reps actually done on a set: a per-set override (e.rs) if there is one, else the entry's planned reps.
+  function repsFor(e,sIdx){var o=e&&e.rs?e.rs[sIdx]:null;return (o!=null&&!isNaN(o))?o:((e&&e.r)||0);}
+  function hasRepEdits(e){return !!(e&&e.rs&&e.rs.some(function(x){return x!=null;}));}
+  // Index of the last set with a weight in it — the "most recent" set logged for that lift.
+  function lastLoggedSet(e){var last=-1,v=(e&&e.sets)||[];for(var i=0;i<v.length;i++)if(v[i]!=null&&!isNaN(v[i]))last=i;return last;}
+  // Drop set: extra lighter mini-sets straight after the final set, as {w:kg, r:reps} slots.
+  var MAX_DROPS=3;
+  function dropsOf(e){return (e&&e.drops)||[];}
+  function hasDrops(e){return dropsOf(e).some(function(d){return d&&(d.w!=null||d.r!=null);});}
+  function loggedDrops(e){return dropsOf(e).filter(function(d){return d&&d.w!=null;});}
+  // Forget a lift entry once nothing is logged against it — no set weights and no drop set.
+  function pruneLift(name,entry){
+    if(entry&&!setVals(entry).length&&!hasDrops(entry))
+      state.lifts[name]=(state.lifts[name]||[]).filter(function(e){return e!==entry;});
+    if(!(state.lifts[name]||[]).length)delete state.lifts[name];
+    else state.lifts[name].sort(function(a,b){return a.d<b.d?-1:1;});
+  }
   function lastEntryBefore(name,beforeISO){
     var l=(state.lifts[name]||[]).filter(function(e){return e.d<beforeISO;});
     if(!l.length)return null;
@@ -727,7 +768,44 @@
 
   // ================= SESSION PANEL =================
   var panel=document.getElementById("sessionPanel");
+  function repLabel(i){return i<0?"Last set reps":"Set "+(i+1)+" reps";}
+  // Rep count for the most recently logged set, so a set that fell short of the plan (4 × 6, but the last one only made 4)
+  // can be corrected. Empty = did the planned reps.
+  function repBoxHtml(name,entry,planned){
+    var i=lastLoggedSet(entry);
+    var ov=(i>=0&&entry&&entry.rs&&entry.rs[i]!=null)?entry.rs[i]:"";
+    return '<span class="setbox repbox"'+(i<0?" hidden":"")+'>'+
+      '<span class="setn">'+repLabel(i)+'</span>'+
+      '<input class="sr'+(ov!==""?" logged":"")+'" type="number" step="1" min="1" inputmode="numeric"'+
+      ' data-name="'+esc(name)+'" data-set="'+i+'" value="'+ov+'" placeholder="'+(planned||"reps")+'"'+
+      ' aria-label="'+esc(name)+' '+repLabel(i).toLowerCase()+'"></span>';
+  }
   // Build the block list (warm-up picker + main blocks + finisher) HTML for a template, keyed to a progress store.
+  // Revealed-but-still-empty drop rows, so the row survives a re-render before anything is typed into it.
+  var dropOpen={};
+  function dropsHtml(name,entry,prevE,planned){
+    var da=' data-name="'+esc(name)+'" data-reps="'+planned+'"';
+    // A drop set follows the last set, so the button only shows once the lift is under way.
+    if(!hasDrops(entry) && !dropOpen[name+"|"+selISO])
+      return '<button class="dropbtn" type="button"'+da+' data-drop-open="1"'+
+        (lastLoggedSet(entry)<0?" hidden":"")+'>＋ Drop set</button>';
+    var h='<div class="drops"><span class="drops-lab">Drop set — straight after the last set'+
+      '<button class="drop-off" type="button"'+da+' data-drop-close="1" aria-label="Remove drop set for '+esc(name)+'">✕</button></span>';
+    for(var i=0;i<MAX_DROPS;i++){
+      var d=dropsOf(entry)[i]||{}, p=dropsOf(prevE)[i]||{};
+      var w=d.w!=null?round1(fromKg(d.w)):"", r=d.r!=null?d.r:"";
+      h+='<span class="setbox"><span class="setn">Drop '+(i+1)+'</span><span class="droppair">'+
+        '<input class="dw'+(w!==""?" logged":"")+'" type="number" step="0.5" inputmode="decimal"'+da+' data-drop="'+i+'"'+
+        ' value="'+w+'" placeholder="'+(p.w!=null?round1(fromKg(p.w)):state.unit)+'"'+
+        ' aria-label="'+esc(name)+' drop '+(i+1)+' weight">'+
+        '<span class="by">×</span>'+
+        '<input class="dr'+(r!==""?" logged":"")+'" type="number" step="1" min="1" inputmode="numeric"'+da+' data-drop="'+i+'"'+
+        ' value="'+r+'" placeholder="'+(p.r!=null?p.r:"reps")+'"'+
+        ' aria-label="'+esc(name)+' drop '+(i+1)+' reps"></span></span>';
+    }
+    return h+'</div>';
+  }
+
   function sessionBlocks(t, store){
     var tag=TAGS[t.tag];
     var prog=state[store][selISO];
@@ -748,7 +826,7 @@
         var setsHtml="";
         if(isWeighted(it.d) && !isBodyweight(it.n)){
           var nSets=parseSets(it.d), reps=parseReps(it.d);
-          var todayE=(state.lifts[it.n]||[]).filter(function(e){return e.d===selISO;})[0];
+          var todayE=entryFor(it.n,selISO);
           var prevE=lastEntryBefore(it.n,selISO);
           var boxes="";
           for(var sIdx=0;sIdx<nSets;sIdx++){
@@ -760,7 +838,9 @@
               ' data-name="'+esc(it.n)+'" data-set="'+sIdx+'" data-reps="'+reps+'" value="'+cur+'" placeholder="'+ph+'"'+
               ' aria-label="'+esc(it.n)+' set '+(sIdx+1)+' weight"></span>';
           }
-          setsHtml='<div class="sets"><span class="sets-lab">Weight per set ('+state.unit+') — faded = last time</span>'+boxes+'</div>';
+          setsHtml='<div class="sets"><span class="sets-lab">Weight per set ('+state.unit+') — faded = last time</span>'+
+            boxes+repBoxHtml(it.n,todayE,reps)+'</div>';
+          if(t.tag==="strength")setsHtml+=dropsHtml(it.n,todayE,prevE,reps);
         }
         h+='<li class="item'+(done?" done":"")+'" data-key="'+key+'"'+s2attr+'><span class="check">✓</span>'+
            '<div class="item-main"><span class="lbl">'+esc(it.n)+(it.d?' <span class="det">— '+esc(it.d)+'</span>':'')+'</span>'+setsHtml+'</div></li>';
@@ -846,10 +926,84 @@
         entry.r=reps;
         if(raw===""){entry.sets[sIdx]=null;}
         else{var v=parseFloat(raw); entry.sets[sIdx]=(!isNaN(v)&&v>0)?toKg(v):null;}
-        if(!setVals(entry).length){state.lifts[name]=list.filter(function(e){return e!==entry;});}
-        if(state.lifts[name].length===0)delete state.lifts[name];
-        else state.lifts[name].sort(function(a,b){return a.d<b.d?-1:1;});
+        if(entry.sets[sIdx]==null&&entry.rs)entry.rs[sIdx]=null;   // no weight, no rep override
+        if(entry.rs&&!hasRepEdits(entry))delete entry.rs;
+        pruneLift(name,entry);
         inp.classList.toggle("logged",raw!=="");
+        save();
+        syncLiftRow(inp.closest("li.item"));
+      });
+    });
+    // Keep the per-lift extras in step as weights are typed, without re-rendering the panel under the user.
+    function syncLiftRow(li){
+      if(!li)return;
+      var box=li.querySelector(".repbox"), btn=li.querySelector(".dropbtn");
+      var inp=box&&box.querySelector(".sr"), name=(inp||btn)&&(inp||btn).getAttribute("data-name");
+      if(!name)return;
+      var entry=entryFor(name,selISO), i=lastLoggedSet(entry);
+      if(btn)btn.hidden=i<0;               // a drop set only makes sense once a set is logged
+      if(!box)return;
+      var ov=(i>=0&&entry&&entry.rs&&entry.rs[i]!=null)?entry.rs[i]:"";
+      box.hidden=i<0;
+      box.querySelector(".setn").textContent=repLabel(i);
+      inp.setAttribute("data-set",i);
+      inp.setAttribute("aria-label",name+" "+repLabel(i).toLowerCase());
+      inp.value=ov;
+      inp.classList.toggle("logged",ov!=="");
+    }
+    panel.querySelectorAll(".sr").forEach(function(inp){
+      inp.addEventListener("click",function(e){e.stopPropagation();});
+      inp.addEventListener("change",function(){
+        var sIdx=parseInt(inp.getAttribute("data-set"),10);
+        var entry=entryFor(inp.getAttribute("data-name"),selISO);
+        if(!entry||isNaN(sIdx)||sIdx<0){inp.value="";return;}
+        var v=parseInt(inp.value.trim(),10), ok=!isNaN(v)&&v>0;
+        if(!entry.rs)entry.rs=[];
+        entry.rs[sIdx]=ok?v:null;
+        if(!hasRepEdits(entry))delete entry.rs;
+        inp.value=ok?v:"";
+        inp.classList.toggle("logged",ok);
+        save();
+      });
+    });
+    panel.querySelectorAll("[data-drop-open],[data-drop-close]").forEach(function(b){
+      b.addEventListener("click",function(e){
+        e.stopPropagation();
+        var name=b.getAttribute("data-name"), k=name+"|"+selISO;
+        if(b.hasAttribute("data-drop-open")){ dropOpen[k]=true; }
+        else {
+          delete dropOpen[k];
+          var entry=entryFor(name,selISO);
+          if(entry){ delete entry.drops; pruneLift(name,entry); save(); }
+        }
+        renderSession();
+      });
+    });
+    panel.querySelectorAll(".dw,.dr").forEach(function(inp){
+      inp.addEventListener("click",function(e){e.stopPropagation();});
+      inp.addEventListener("change",function(){
+        var name=inp.getAttribute("data-name");
+        var i=parseInt(inp.getAttribute("data-drop"),10)||0;
+        var isW=inp.classList.contains("dw");
+        var raw=inp.value.trim(), v=isW?parseFloat(raw):parseInt(raw,10);
+        var ok=raw!==""&&!isNaN(v)&&v>0;
+        var entry=entryFor(name,selISO);
+        if(!entry){
+          if(!ok){inp.value="";return;}
+          entry={d:selISO,sets:[],r:parseInt(inp.getAttribute("data-reps"),10)||0};
+          (state.lifts[name]=state.lifts[name]||[]).push(entry);
+        }
+        if(!entry.drops)entry.drops=[];
+        while(entry.drops.length<=i)entry.drops.push(null);
+        var d=entry.drops[i]||{w:null,r:null};
+        if(isW){ d.w=ok?toKg(v):null; if(!ok)d.r=null; }   // no weight, no drop
+        else d.r=ok?v:null;
+        entry.drops[i]=(d.w==null&&d.r==null)?null:d;
+        if(!hasDrops(entry))delete entry.drops;
+        pruneLift(name,entry);
+        inp.value=ok?v:"";
+        inp.classList.toggle("logged",ok);
+        if(isW&&!ok){ var pair=inp.parentNode.querySelector(".dr"); pair.value=""; pair.classList.remove("logged"); }
         save();
       });
     });
@@ -983,7 +1137,9 @@
   function bestOf(list){
     if(!list||!list.length)return null;
     var bw=-1,br=0;
-    list.forEach(function(e){var t=topSet(e); if(t!=null&&t>bw){bw=t;br=e.r||0;}});
+    list.forEach(function(e){
+      (e.sets||[]).forEach(function(w,i){ if(w!=null&&!isNaN(w)&&w>bw){bw=w;br=repsFor(e,i);} });
+    });
     return bw<0?null:{w:bw,r:br};
   }
   function renderLifts(){
@@ -1008,8 +1164,11 @@
         if(last){
           h+='<div class="lift-hist">'+list.slice().reverse().slice(0,6).map(function(e){
              var d=new Date(e.d+"T00:00:00");
-             var setsTxt=setVals(e).map(function(w){return round1(fromKg(w));}).join(" · ");
-             return '<span>'+(setsTxt||"—")+' '+state.unit+(e.r?' ×'+e.r:'')+' · '+fmtDate(d)+'</span>';
+             var ov=hasRepEdits(e), parts=[];
+             (e.sets||[]).forEach(function(w,i){ if(w!=null&&!isNaN(w))parts.push(round1(fromKg(w))+(ov?"×"+repsFor(e,i):"")); });
+             var setsTxt=parts.join(" · ");
+             var drops=loggedDrops(e).map(function(x){return round1(fromKg(x.w))+(x.r?"×"+x.r:"");}).join(" → ");
+             return '<span>'+(setsTxt||"—")+' '+state.unit+((!ov&&e.r&&setsTxt)?' ×'+e.r:'')+(drops?' → '+drops:'')+' · '+fmtDate(d)+'</span>';
           }).join("")+'</div>';
         }
       }
