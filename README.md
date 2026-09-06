@@ -8,6 +8,7 @@ A personal boxing & strength training planner — a small, self-contained web ap
 - 6-day boxing + strength week, with an **Ease Back** phase for returning from a layoff
 - Tick-off sessions with **per-set weight logging** (shows last time's weight), and an editable **rep count on your last set** for when it falls short of the plan
 - Log a **drop set** off the final set of any lift on strength days (up to three drops, weight × reps)
+- **Add an exercise** to any session — machines and accessories you tack on at the end, with the same weight, rep and drop-set logging
 - **Progress** tab: bodyweight chart + per-lift top-set trends
 - Boxing **round timer** with bell
 - Swap any day for an alternative (Circuit / Solo Boxing / Quick Home / Cardio)
